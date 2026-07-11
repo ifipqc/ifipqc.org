@@ -3,10 +3,14 @@ import os
 import glob
 import re
 
-# Paths are relative to this script
+# Paths are relative to the parent directory of this script
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-HEADER_TEMPLATE = os.path.join(BASE_DIR, "assets", "templates", "_header.html")
-FOOTER_TEMPLATE = os.path.join(BASE_DIR, "assets", "templates", "_footer.html")
+HEADER_TEMPLATE = os.path.join(BASE_DIR, "templates", "_header.html")
+FOOTER_TEMPLATE = os.path.join(BASE_DIR, "templates", "_footer.html")
+
+# Each entry consists of a 'pattern' matching files to process, and additional
+# strings which can be substituted for placeholders in the template, e.g. the
+# any occurrence of '{{ROOT}}' in the template gets substituted for 'ROOT'
 FILES = [
     { 'pattern': os.path.join(BASE_DIR, "index.html"), 'ROOT': '' },
     { 'pattern': os.path.join(BASE_DIR, "pages", "*.html"), 'ROOT': '../' },
