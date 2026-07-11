@@ -1,14 +1,15 @@
-#!/bin/env python
+#!/usr/bin/python3
 import os
 import glob
+import re
 
 # Paths are relative to this script
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-HEADER_TEMPLATE = os.path.join(BASE_DIR, "_header.html")
-FOOTER_TEMPLATE = os.path.join(BASE_DIR, "_footer.html")
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+HEADER_TEMPLATE = os.path.join(BASE_DIR, "assets", "templates", "_header.html")
+FOOTER_TEMPLATE = os.path.join(BASE_DIR, "assets", "templates", "_footer.html")
 FILES = [
-    os.path.join(BASE_DIR, "..", "index.html"),
-    os.path.join(BASE_DIR, "..", "pages", "*.html")
+    { 'pattern': os.path.join(BASE_DIR, "index.html"), 'ROOT': '' },
+    { 'pattern': os.path.join(BASE_DIR, "pages", "*.html"), 'ROOT': '../' },
 ]
 
 def update_template():
@@ -17,47 +18,52 @@ def update_template():
     with open(FOOTER_TEMPLATE, 'r', encoding='utf-8') as f:
         footer_template = f.read()
 
-    target_files = []
-    for pattern in FILES:
-        target_files.extend(glob.glob(pattern))
+    for desc in FILES:
+        # substitute placeholders in template
+        def rep(m):
+            return desc[m.group(1)]
+        header = re.sub(r'{{([^}]+)}}', rep, header_template)
+        footer = re.sub(r'{{([^}]+)}}', rep, footer_template)
 
-    for filepath in target_files:
-        print(f"\nProcessing file: {filepath}")
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                original_content = f.read()
-            
-            parts = [original_content]
-            parts += parts.pop().split("<header>")
-            if len(parts) != 2:
-                raise Exception("<header> tag not found")
-            parts += parts.pop().split("</header>")
-            if len(parts) != 3:
-                raise Exception("</header> tag not found")
-            parts += parts.pop().split("<footer>")
-            if len(parts) != 4:
-                raise Exception("<footer> tag not found")
-            parts += parts.pop().split("</footer>")
-            if len(parts) != 5:
-                raise Exception("</footer> tag not found")
+        # replace contents of <header> and <footer> with template
+        for filepath in glob.glob(desc['pattern']):
+            print(f"\nProcessing file: {filepath}")
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    original_content = f.read()
+                
+                parts = [original_content]
+                parts += parts.pop().split("<header>")
+                if len(parts) != 2:
+                    raise Exception("<header> tag not found")
+                parts += parts.pop().split("</header>")
+                if len(parts) != 3:
+                    raise Exception("</header> tag not found")
+                parts += parts.pop().split("<footer>")
+                if len(parts) != 4:
+                    raise Exception("<footer> tag not found")
+                parts += parts.pop().split("</footer>")
+                if len(parts) != 5:
+                    raise Exception("</footer> tag not found")
 
-            # Inject content
-            modified_content = (
-                parts[0] +
-                "<header>\n" + 
-                header_template +
-                "\n</header>" + 
-                parts[2] +
-                "<footer>\n" + 
-                footer_template +
-                "\n</footer>" + 
-                parts[4] 
-            )
+                # Inject content
+                modified_content = (
+                    parts[0] +
+                    "<header>\n" + 
+                    header +
+                    "\n</header>" + 
+                    parts[2] +
+                    "<footer>\n" + 
+                    footer +
+                    "\n</footer>" + 
+                    parts[4] 
+                )
+            except Exception as e:
+                print(f"SKIPPED {filepath}: {e}")
+
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(modified_content)
-        except Exception as e:
-            print(f"ERROR in {filepath}: {e}")
-        print("OK")
+            print("OK")
 
 if __name__ == "__main__":
     update_template()
